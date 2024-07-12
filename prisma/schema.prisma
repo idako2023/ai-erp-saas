@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+
+model User {
+  id            Int            @id @default(autoincrement())
+  email         String         @unique
+  password      String
+  name          String         @unique
+  role          Role           @default(USER)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  companyId     Int?
+  conversations Conversation[]
+  company       Company?       @relation(fields: [companyId], references: [id])
+  siteName  String?  // 新增字段
+  apiKey    String?  // 新增字段
+  apiSecret String?  // 新增字段
+  Site      Site[]   @relation("UserSite")
+
+  @@index([companyId], map: "User_companyId_fkey")
+}
+
+model Site {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  userId    Int
+  User      User     @relation("UserSite", fields: [userId], references: [id])
+  Token     Token[]
+}
+
+model Token {
+  id        Int      @id @default(autoincrement())
+  apiKey    String
+  apiSecret String
+  createdAt DateTime @default(now())
+  siteId    Int
+  Site      Site     @relation(fields: [siteId], references: [id])
+}
+
+model Company {
+  id        Int      @id @default(autoincrement())
+  name      String
+  industry  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]
+}
+
+model Conversation {
+  id            Int       @id @default(autoincrement())
+  userId        Int
+  startedAt     DateTime  @default(now())
+  lastMessageAt DateTime  @updatedAt
+  user          User      @relation(fields: [userId], references: [id])
+  messages      Message[]
+
+  @@index([userId], map: "Conversation_userId_fkey")
+}
+
+model Message {
+  id             Int          @id @default(autoincrement())
+  conversationId Int
+  content        String       @db.Text
+  sender         Sender
+  timestamp      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+
+  @@index([conversationId], map: "Message_conversationId_fkey")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Sender {
+  USER
+  ADMIN
+  BOT
+}
